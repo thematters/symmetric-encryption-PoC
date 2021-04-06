@@ -56,23 +56,17 @@
                  * generate symmetric key
                  */
 
-                var keyJSON = await crypto.subtle.exportKey(
-                    'jwk',
-                    await crypto.subtle.generateKey(
-                        { name: config.alg.name, length: config.key.length },
-                        true,
-                        config.key.usage
-                    )
+                var keyEncyption = await crypto.subtle.generateKey(
+                    { name: config.alg.name, length: config.key.length },
+                    true,
+                    config.key.usage
                 )
 
+                var keyJSON = await crypto.subtle.exportKey('jwk', keyEncyption)
                 var keyString = keyJSON.k
+
                 console.log(`secret: ${keyString}`)
 
-                /*
-                 * encrypt html string
-                 */
-
-                // import key from before
                 var key = await crypto.subtle.importKey(
                     'jwk',
                     {
@@ -86,6 +80,10 @@
                     true,
                     config.key.usage
                 )
+
+                /*
+                 * encrypt html string
+                 */
 
                 // get origin and encrypted it
                 var elOrigin = document.querySelector('.origin')

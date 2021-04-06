@@ -2,12 +2,15 @@ PoCs for HTML string encryption and decryption with Web Crypto API
 
 # encrypt-decrypt
 
-Content in `origin` class is encrypted and written to `encrypted` class, then descypted to `decrypted` class.
+Showcase both encryption and decryption. Content in `origin` class is encrypted and written to `encrypted` class, then descypted to `decrypted` class.
 
-# TODO
+-   Open index.html file.
+-   You should see the original content under `Origin` header, encrypted content under `Encrypted`, decrypted content under `Decrypted` header, and secret string logged out in console.
 
--   encryopt on node server and descrpt on browser by passing in query string
+# decrypt-with-query-string
 
-# Notes
+Decrypt encrypted content by passing in secret in query string.
 
-Current encryption method use AES in “counter” mode, counting up from 0 for each encryption block. This has some down side and need to investigate different modes of operation in block ciphers.
+-   Open index.html file, you should see the encrypted content.
+-   Add query string `?secret=lUE7rYm9-y2h1WVamWVSlw`, you should see the decrypted content.
+-   Alternatively, [test it on IPFS](https://gateway.pinata.cloud/ipfs/QmSx5MUS2cJNL7WAmVMDRPa4vdFp2tUHe55XANDzQUapzC/?secret=lUE7rYm9-y2h1WVamWVSlw)
