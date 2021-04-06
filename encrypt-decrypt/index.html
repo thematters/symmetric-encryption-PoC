@@ -37,6 +37,19 @@
                 return new Uint8Array(bytes)
             }
 
+            // algorithm and key config
+            var config = {
+                alg: {
+                    name: 'AES-CTR',
+                    counter: new Uint8Array(16),
+                    length: 16 * 8,
+                },
+                key: {
+                    length: 128,
+                    usage: ['encrypt', 'decrypt'],
+                },
+            }
+
             // trigger
             document.addEventListener('DOMContentLoaded', async function () {
                 /*
@@ -46,12 +59,14 @@
                 var keyJSON = await crypto.subtle.exportKey(
                     'jwk',
                     await crypto.subtle.generateKey(
-                        { name: 'AES-CTR', length: 128 },
+                        { name: config.alg.name, length: config.key.length },
                         true,
-                        ['encrypt', 'decrypt']
+                        config.key.usage
                     )
                 )
-                console.log(`secret: ${keyJSON.k}`)
+
+                var keyString = keyJSON.k
+                console.log(`secret: ${keyString}`)
 
                 /*
                  * encrypt html string
@@ -60,21 +75,23 @@
                 // import key from before
                 var key = await crypto.subtle.importKey(
                     'jwk',
-                    keyJSON,
-                    { name: 'AES-CTR', length: 128 },
+                    {
+                        alg: 'A128CTR',
+                        ext: true,
+                        k: keyString,
+                        key_ops: config.key.usage,
+                        kty: 'oct',
+                    },
+                    { name: config.alg.name, length: config.key.length },
                     true,
-                    ['encrypt', 'decrypt']
+                    config.key.usage
                 )
 
                 // get origin and encrypted it
                 var elOrigin = document.querySelector('.origin')
                 var encrypted = buf2hex(
                     await crypto.subtle.encrypt(
-                        {
-                            name: 'AES-CTR',
-                            counter: new Uint8Array(16),
-                            length: 16 * 8,
-                        },
+                        config.alg,
                         key,
                         new TextEncoder('utf-8').encode(elOrigin.innerHTML)
                     )
@@ -91,11 +108,7 @@
                 // get encrypted and decrypt it
                 var decrypted = new TextDecoder('utf-8').decode(
                     await crypto.subtle.decrypt(
-                        {
-                            name: 'AES-CTR',
-                            counter: new Uint8Array(16),
-                            length: 16 * 8,
-                        },
+                        config.alg,
                         key,
                         hex2buf(elEncrypted.innerHTML)
                     )
@@ -244,6 +257,10 @@
                 left: 0;
                 width: 100%;
                 height: 100%;
+            }
+
+            .encrypted {
+                overflow-wrap: break-word;
             }
         </style>
 
