@@ -20,63 +20,55 @@
             content="纽约文化沙龙分享内容，引文整理自现场讨论。美国上世纪80年代，互联网协议刚开始出现，也刚从越战的泥潭中走出来，还依然笼罩在冷战的核阴影之中。大量民众意识到政府可以做出愚蠢的决定，对政府极不信任。许多计算机科学家和hacker研究如何通过加密来进行信息交互和身份认证，防止政府控制和..."
         />
         <script type="text/javascript">
-            // const
+            // reference implementation of decryption for algorithm version 1
+            async function decrypt(content, keyString) {
+                // translate hex string to buffer
+                function hex2buf(hex) {
+                    const bytes = []
+                    for (let i = 0; i < hex.length; i += 2) {
+                        bytes.push(Number.parseInt(hex.slice(i, i + 2), 16))
+                    }
+                    return new Uint8Array(bytes)
+                }
+
+                // import key from keyString
+                var key = await crypto.subtle.importKey(
+                    'jwk',
+                    {
+                        alg: 'A128CTR',
+                        ext: true,
+                        k: keyString,
+                        key_ops: ['encrypt', 'decrypt'],
+                        kty: 'oct',
+                    },
+                    {
+                        name: 'AES-CTR',
+                        length: 128,
+                    },
+                    true,
+                    ['encrypt', 'decrypt']
+                )
+
+                // decrypt and return
+                return new TextDecoder('utf-8').decode(
+                    await crypto.subtle.decrypt(
+                        {
+                            name: 'AES-CTR',
+                            counter: new Uint8Array(16),
+                            length: 16 * 8,
+                        },
+                        key,
+                        hex2buf(content)
+                    )
+                )
+            }
+
+            // global parameter name
             const paramName = 'key'
 
-            // util
-            function hex2buf(hex) {
-                const bytes = []
-                for (let i = 0; i < hex.length; i += 2) {
-                    bytes.push(Number.parseInt(hex.slice(i, i + 2), 16))
-                }
-                return new Uint8Array(bytes)
-            }
-
-            // algorithm and key config
-            var config = {
-                alg: {
-                    name: 'AES-CTR',
-                    counter: new Uint8Array(16),
-                    length: 16 * 8,
-                },
-                key: {
-                    length: 128,
-                    usage: ['encrypt', 'decrypt'],
-                },
-            }
-
-            // decrypt the first element with classname 'encrypted'
-            // then recursively decrypt the next one
-            async function decrypt(key) {
-                // get encrypted and decrypt it
-                var elEncrypted = document.querySelector('.encrypted')
-                if (elEncrypted) {
-                    try {
-                        var decrypted = new TextDecoder('utf-8').decode(
-                            await crypto.subtle.decrypt(
-                                config.alg,
-                                key,
-                                hex2buf(elEncrypted.innerHTML.trim())
-                            )
-                        )
-                        // write to decrypted section
-                        elEncrypted.innerHTML = decrypted
-                        // update classname
-                        elEncrypted.className = elEncrypted.className.replace(
-                            /(?:^|\s)encrypted(?!\S)/,
-                            'decrypted'
-                        )
-                        // decrypt the next encyroted element
-                        await decrypt(key)
-                    } catch (err) {
-                        console.error('Fail to decrypt content:', err)
-                        showInput(hasKey)
-                    }
-                }
-            }
-
+            // handle input UI
             function showInput(hasKey) {
-                // get encrypted and decrypt it
+                // get encrypted element
                 var elEncrypted = document.querySelector('.encrypted')
                 // blur effect
                 elEncrypted.style.cssText = `
@@ -84,7 +76,7 @@
                     text-shadow:0px 0px 5px #000;
                 `
 
-                // create input and form
+                // create input place holder
                 var elInput = document.createElement('input')
                 elInput.setAttribute('type', 'password')
                 elInput.setAttribute('name', paramName)
@@ -95,16 +87,11 @@
                         'placeholder',
                         `wrong ${paramName}, try again`
                     )
-                    console.log(
-                        `Wrong key, please re-enter encryption key or provide it as url parameter "${paramName}".`
-                    )
                 } else {
                     elInput.setAttribute('placeholder', 'enter key')
-                    console.log(
-                        `Please enter encryption key or provide it as url parameter "${paramName}".`
-                    )
                 }
 
+                // creat form
                 var elForm = document.createElement('form')
                 elForm.setAttribute('method', 'get')
                 elForm.style.cssText = `
@@ -114,6 +101,7 @@
                     width: 100%;
                 `
 
+                // insert form and input
                 elForm.appendChild(elInput)
                 elEncrypted.appendChild(elForm)
             }
@@ -121,33 +109,30 @@
             document.addEventListener('DOMContentLoaded', async function () {
                 // get secret
                 const urlParams = new URLSearchParams(window.location.search)
-                // should be "lUE7rYm9-y2h1WVamWVSlw"
-                const secret = urlParams.get(paramName)
+                // should be "lUE7rYm9-y2h1WVamWVSlw" for this example
+                const keyString = urlParams.get(paramName)
 
-                if (!secret) {
-                    showInput(false)
-                } else {
-                    try {
-                        var key = await crypto.subtle.importKey(
-                            'jwk',
-                            {
-                                alg: 'A128CTR',
-                                ext: true,
-                                k: secret,
-                                key_ops: config.key.usage,
-                                kty: 'oct',
-                            },
-                            {
-                                name: config.alg.name,
-                                length: config.key.length,
-                            },
-                            true,
-                            config.key.usage
-                        )
-                        await decrypt(key)
-                    } catch (err) {
-                        console.error('Secret key format error:', err)
-                        showInput(true)
+                var elEncrypted = document.querySelector('.encrypted')
+
+                if (elEncrypted) {
+                    if (!keyString) {
+                        showInput(false)
+                    } else {
+                        try {
+                            const decrypted = await decrypt(
+                                elEncrypted.innerHTML.trim(),
+                                keyString
+                            )
+                            // write to decrypted section
+                            elEncrypted.innerHTML = decrypted
+                            // update classname
+                            elEncrypted.className = elEncrypted.className.replace(
+                                /(?:^|\s)encrypted(?!\S)/,
+                                'decrypted'
+                            )
+                        } catch (err) {
+                            showInput(true)
+                        }
                     }
                 }
             })
