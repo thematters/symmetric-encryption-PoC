@@ -18,3 +18,13 @@ Decrypt encrypted content by passing in secret in query string.
 # decrypt-with-form
 
 Same with `decrypt-with-query-string`, except user can enter key in an input box. Test it [here](https://gateway.pinata.cloud/ipfs/QmU7ZLzUAbRvdgHmg3C4mqKuHtn4NrmNzM5sG9dFCVop83/) with key `lUE7rYm9-y2h1WVamWVSlw`. Also added `data-algorithm-version` attribute and `decrypt` function that works as reference implementation.
+
+# encryption-with-node
+
+Reads html file and asset from `./article`, encrypt `article` tag, and return url with encryption key.
+
+-   Start an IPFS daemon with default API port `5001` and default gateway port `8080`
+-   `cd encryption-with-node`
+-   `npm i`
+-   `npm run publish`
+-   Vist the result url in terminal, the content should be decrypted
